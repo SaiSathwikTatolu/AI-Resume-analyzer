@@ -1,0 +1,392 @@
+{
+  "name": "AI Resume Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1HtvApuYmSz4EuvzkboYYRbstMVPDSqUYPD5yKeuFoKw",
+          "mode": "list",
+          "cachedResultName": "AI Resume Analyzer (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HtvApuYmSz4EuvzkboYYRbstMVPDSqUYPD5yKeuFoKw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 361320412,
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HtvApuYmSz4EuvzkboYYRbstMVPDSqUYPD5yKeuFoKw/edit#gid=361320412"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "f44b8ebc-68ec-4ff3-92b1-294c24d57e04",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "nJCxTSrYORX3ym9B",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "15syQLHU1xhicQ2bMvgoVCm4ImZYItw9o",
+          "mode": "list",
+          "cachedResultName": "Mubeen_resume.docx - Sathwik Tatolu.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/15syQLHU1xhicQ2bMvgoVCm4ImZYItw9o/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        -16
+      ],
+      "id": "6d046105-3c5d-47c9-81a8-1485a2a3abef",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "aQ7rgHohZV13YJBo",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "85dc1ab3-4a3e-4f70-a820-4b1ac81b410f",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e47c5b0d-4303-4b47-b549-a9208c0886c2",
+              "name": "Name ",
+              "value": "={{ $json['Name '] }}",
+              "type": "string"
+            },
+            {
+              "id": "a9feb3ca-73a9-4b2c-98e7-3d0e89a5fd15",
+              "name": "Upload Resume",
+              "value": "={{ $json['Upload Resume'] }}",
+              "type": "string"
+            },
+            {
+              "id": "66eca5c0-e45e-4689-bdec-2742785526ff",
+              "name": "Job Description",
+              "value": "={{ $json['Job Description'] }}",
+              "type": "string"
+            },
+            {
+              "id": "49f4df99-aeaf-4658-9bbb-3c9dfacff7a6",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "c9c10aa4-ad3f-47b8-8c82-0eaa5c92bed4",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        176
+      ],
+      "id": "03698d91-ae24-4521-a43b-28767da4c9e8",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "g5a8BtNIBvtSHffA",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are a professional ATS Resume Analyzer.\n\nYour task is to analyze the provided resume against the given job description and evaluate how well the candidate matches the role.\n\nIMPORTANT RULES:\n- Return ONLY valid JSON\n- Do not add explanations outside JSON\n- Do not use markdown formatting\n- ATS score must be a number between 0 and 100\n- Match percentage must be a number between 0 and 100\n- Be strict but fair in evaluation\n- Evaluate skills, projects, experience, education, keywords, and formatting\n- Identify missing skills and optimization opportunities\n\nReturn this EXACT JSON structure:\n\n{\n  \"ats_score\": 0,\n  \"match_percentage\": 0,\n  \"technical_skills_found\": [],\n  \"missing_keywords\": [],\n  \"missing_skills\": [],\n  \"resume_strengths\": [],\n  \"resume_weaknesses\": [],\n  \"formatting_issues\": [],\n  \"suggestions\": [],\n  \"final_hiring_recommendation\": \"\"\n}\n\nATS SCORE GUIDELINES:\n90-100 = Excellent\n75-89 = Strong\n60-74 = Average\nBelow 60 = Needs Improvement\n\nHIRING RECOMMENDATION VALUES:\n- Highly Recommended\n- Recommended\n- Consider After Improvements\n- Not Recommended"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        896,
+        -16
+      ],
+      "id": "10fb1ba2-0a62-4544-8ec6-004540a4632b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d2ee7012-bf97-46f3-b44b-d8a44fbf1a9f",
+              "name": "ATS Score",
+              "value": "={{ JSON.parse($json.output).ats_score }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        -16
+      ],
+      "id": "426d15af-296e-4d84-93b8-f4e037439d2d",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d69d08e9-ce7b-4476-937a-0b1b4d315797",
+              "leftValue": "={{ $json['ATS Score'] }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1472,
+        -16
+      ],
+      "id": "a1d96209-ae59-421e-b14e-87346e20064d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json.Email }}",
+        "subject": "=ATS Resume Evaluation Result – Strong Match for Target Role",
+        "message": "=<html>\n<head>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      background-color: #f4f6f8;\n      padding: 20px;\n      color: #333;\n    }\n\n    .container {\n      max-width: 700px;\n      margin: auto;\n      background: #ffffff;\n      padding: 30px;\n      border-radius: 10px;\n      border: 1px solid #dddddd;\n    }\n\n    .header {\n      text-align: center;\n      color: #1e7e34;\n    }\n\n    .score-box {\n      background-color: #eaf7ed;\n      padding: 20px;\n      text-align: center;\n      border-radius: 8px;\n      margin: 25px 0;\n    }\n\n    .score {\n      font-size: 32px;\n      font-weight: bold;\n      color: #1e7e34;\n    }\n\n    .section {\n      margin-top: 30px;\n    }\n\n    .section h3 {\n      border-bottom: 1px solid #dddddd;\n      padding-bottom: 8px;\n    }\n\n    ul {\n      padding-left: 20px;\n    }\n\n    .footer {\n      margin-top: 35px;\n      font-size: 14px;\n      color: #777;\n    }\n  </style>\n</head>\n\n<body>\n\n<div class=\"container\">\n\n  <h2 class=\"header\">Resume Evaluation Completed</h2>\n\n  <p>Dear {{ $('Edit Fields').item.json['Name '] }} ,</p>\n\n  <p>\n    Your resume has been successfully analyzed against the provided job description.\n    Your profile demonstrates strong alignment with the target role requirements.\n  </p>\n\n  <div class=\"score-box\">\n    <div class=\"score\">\n    {{ $('Edit Fields1').item.json['ATS Score'] }}/100\n    </div>\n    <p>ATS Score</p>\n  </div>\n\n  <div class=\"section\">\n    <h3>Positive Feedback</h3>\n\n    <ul>\n      <li>Strong alignment with required technical skills</li>\n      <li>Good ATS keyword optimization</li>\n      <li>Relevant projects and technical experience identified</li>\n      <li>Professional resume structure and readability</li>\n    </ul>\n  </div>\n\n  <div class=\"section\">\n    <h3>Recommendation</h3>\n\n    <p>\n      Your resume is well-positioned for applying to relevant job opportunities.\n      Continue applying confidently to roles aligned with your technical background.\n    </p>\n  </div>\n\n  <div class=\"footer\">\n    Best Regards,<br>\n    ATS Resume Analyzer System\n  </div>\n\n</div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        -112
+      ],
+      "id": "ee8048f6-2ca1-4944-915e-574dfc6c294b",
+      "name": "Send a message",
+      "webhookId": "c06fd851-0015-4da2-9d92-9f0be5d44fe3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tBOqhIAsSyF2flky",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json.Email }}",
+        "subject": "ATS Resume Evaluation Result – Resume Improvement Recommended",
+        "message": "=<html>\n<head>\n  <style>\n    body {\n      font-family: Arial, sans-serif;\n      background-color: #f4f6f8;\n      padding: 20px;\n      color: #333;\n    }\n\n    .container {\n      max-width: 700px;\n      margin: auto;\n      background: #ffffff;\n      padding: 30px;\n      border-radius: 10px;\n      border: 1px solid #dddddd;\n    }\n\n    .header {\n      text-align: center;\n      color: #c82333;\n    }\n\n    .score-box {\n      background-color: #fdeaea;\n      padding: 20px;\n      text-align: center;\n      border-radius: 8px;\n      margin: 25px 0;\n    }\n\n    .score {\n      font-size: 32px;\n      font-weight: bold;\n      color: #c82333;\n    }\n\n    .section {\n      margin-top: 30px;\n    }\n\n    .section h3 {\n      border-bottom: 1px solid #dddddd;\n      padding-bottom: 8px;\n    }\n\n    ul {\n      padding-left: 20px;\n    }\n\n    .footer {\n      margin-top: 35px;\n      font-size: 14px;\n      color: #777;\n    }\n  </style>\n</head>\n\n<body>\n\n<div class=\"container\">\n\n  <h2 class=\"header\">Resume Evaluation Completed</h2>\n\n  <p>Dear {{ $('Edit Fields').item.json['Name '] }},</p>\n\n  <p>\n    Your resume has been analyzed against the provided job description.\n    Currently, your resume requires improvements for stronger ATS performance.\n  </p>\n\n  <div class=\"score-box\">\n    <div class=\"score\">\n      {{ $json['ATS Score'] }}/100\n    </div>\n    <p>ATS Score</p>\n  </div>\n\n  <div class=\"section\">\n    <h3>Resume Weaknesses</h3>\n\n    <ul>\n      <li>Missing important technical keywords</li>\n      <li>Limited ATS optimization for the target role</li>\n      <li>Projects and achievements need stronger impact statements</li>\n      <li>Resume formatting can be improved for readability</li>\n    </ul>\n  </div>\n\n  <div class=\"section\">\n    <h3>Improvement Suggestions</h3>\n\n    <ul>\n      <li>Add missing role-specific technical skills</li>\n      <li>Optimize resume keywords based on the job description</li>\n      <li>Include measurable project achievements</li>\n      <li>Improve formatting consistency and clarity</li>\n    </ul>\n  </div>\n\n  <div class=\"section\">\n    <h3>ATS Optimization Recommendation</h3>\n\n    <p>\n      Improve your resume using the suggestions above before applying again\n      to increase your ATS matching performance.\n    </p>\n  </div>\n\n  <div class=\"footer\">\n    Best Regards,<br>\n    ATS Resume Analyzer System\n  </div>\n\n</div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        80
+      ],
+      "id": "ff6a2044-db2f-466f-9ff4-d83a78a42f97",
+      "name": "Send a message1",
+      "webhookId": "c06fd851-0015-4da2-9d92-9f0be5d44fe3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tBOqhIAsSyF2flky",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "bcf20132-b137-429f-a089-36429de42a4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1d6a4d78a992d6d570efc64122a2201602d34ee21956f419853990684c7327e7"
+  },
+  "id": "nn80ZKlA2QEL648k",
+  "tags": [
+    {
+      "updatedAt": "2026-05-23T14:12:43.613Z",
+      "createdAt": "2026-05-23T14:12:43.613Z",
+      "id": "M2NYxScJWyfIFct8",
+      "name": "Project2"
+    }
+  ]
+}
